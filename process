@@ -60,6 +60,27 @@ model = LogisticRegression()
 model.fit(X_train_vectorized, y_train)
 
 
+3. Identify the intent of the query: To identify the intent of the query, you can use techniques such as intent classification or pattern matching. In intent classification, you can train a machine learning model to predict the intent of the query based on the input text. In pattern matching, you can use regular expressions or other similar techniques to match the input text against pre-defined patterns. Here's an example of pattern matching using regular expressions:
+
+import re
+
+input_text = "Give me all the nodes of type person where age is 30"
+pattern = "Give me all the nodes of type (.*) where (.*) is (.*)"
+match = re.match(pattern, input_text)
+if match:
+    intent = "fetch_nodes"
+    entity_type = match.group(1)
+    property_name = match.group(2)
+    property_value = match.group(3)
+
+
+4. Map the tokens to the query template: Once you have identified the intent of the query and extracted the relevant information from the tokens, you can use string formatting or other similar techniques to map the information to the query template. Here's an example using string formatting:
+query_template = "MATCH (n:{}) WHERE n.{} = {} RETURN n"
+query = query_template.format(entity_type, property_name, property_value)
+print(query)
+
+
+
 4. Map the tokens to the query template: Once you have identified the intent of the query, you can use the tokens to fill in the placeholders in the corresponding query template. For example:
 
 def map_tokens_to_template(tokens, intent):
