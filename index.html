@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Demo</title>
+    <!-- Neovis.js library -->
+    <!-- <script src="https://unpkg.com/neovis.js@2.0.2"></script> -->
+    <script src="https://unpkg.com/neo4j-driver"></script>
+    <script type="text/javascript" src="./dist/neovis.js"></script>
+    <!-- Include Bootstrap CSS from CDN link -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <style>
+      /* Style the div that occupies remaining portion of the page */
+      #vis {
+        height: calc(100vh - 100px);
+        background-color: #cdcdcd;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        font-weight: bold;
+      }
+
+      #loader-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 9999;
+        display: none;
+        }
+
+        .loader {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        border: 6px solid #f3f3f3;
+        border-top: 6px solid #3498db;
+        border-radius: 50%;
+        width: 60px;
+        height: 60px;
+        animation: spin 2s linear infinite;
+        }
+
+        @keyframes spin {
+        0% {
+            transform: rotate(0deg);
+        }
+        100% {
+            transform: rotate(360deg);
+        }
+        }
+
+    </style>
+  </head>
+  <body>
+    <div id="loader-overlay">
+        <div class="loader"></div>
+      </div>
+    <div class="container mt-5">
+    <div>
+      <div class="form-group">
+        <label for="email-input">Enter Text:</label>
+        <!-- Add input element for email -->
+        <input type="text" class="form-control" id="inputText">
+      </div>
+      <p class="my-3" id="inputPara">
+        <!-- Add paragraph element for displaying valid email as hyperlink -->
+      </p>
+    </div>
+      <div id="vis">
+      </div>
+    </div>
+
+    <!-- Include Bootstrap JS from CDN link -->
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <script>
+      // Get the input element and paragraph element
+      const inputText = document.getElementById("inputText");
+      const inputPara = document.getElementById("inputPara");
+
+    const visDiv = document.getElementById("vis-div");
+    var vis;
+
+    function showLoader() {
+        document.getElementById('loader-overlay').style.display = 'block';
+    }
+
+    function hideLoader() {
+        document.getElementById('loader-overlay').style.display = 'none';
+    }
+    
+
+      // Add event listener for keydown event on input element
+    //   inputText.addEventListener("keydown", (event) => {
+    //     processInput();
+    //   });
+
+      inputText.addEventListener("blur", (event) => {
+        processInput();
+      });
+
+    function processInput(){
+        
+            // Get the value of the input element
+            const text = inputText.value;
+
+            if (text != undefined && text == '')
+            {
+                alert("Text shouldn't be empty");
+                return;
+            }
+            $("#vis").empty();
+            showLoader();
+            // Make a GET request to the '/process_nlp' endpoint with the query text
+            fetch(`http://127.0.0.1:8000/process_nlp?query=${encodeURIComponent(text)}`)
+            .then(response => response.json())
+            .then(data => {
+                // Process the response data
+                const processedQuery = data.processed_query;
+                console.log('Processed Query:', processedQuery);
+                // Handle the processed query as needed
+                createQuery(processedQuery);
+            })
+            .catch(error => {
+                hideLoader();
+                console.error('Error:', error);
+                alert('Error occured while requesting oython service for cypher:', error);
+                // Handle the error appropriately
+            });
+
+    }
+    
+    // Function to create the Cypher query and visualise the result using neovis.js
+    function createQuery(cypherQuery) {
+
+        // Configure neovis.js
+        var config = {
+            containerId: "vis",
+            neo4j: {
+                serverUrl: "bolt://localhost:7687",
+                serverUser: "neo4j",
+                serverPassword: "12345678"
+            },
+            visConfig: {
+                nodes: {
+                    shape: 'circle',
+                    //title: (node) => { return visRef.current.vis.objectToTitleHtml(node) }
+                    },
+                    edges: {
+                        arrows: {
+                            to: {enabled: true}
+                        }
+                    },
+                    interaction: {
+                        dragNodes:true,
+                        dragView: true,
+                        hideEdgesOnDrag: false,
+                        hideEdgesOnZoom: false,
+                        hideNodesOnDrag: false,
+                        hover: true,
+                        hoverConnectedEdges: true,
+                        keyboard: {
+                            enabled: false,
+                            speed: {x: 10, y: 10, zoom: 0.02},
+                            bindToWindow: true,
+                            autoFocus: true,
+                        },
+                        multiselect: false,
+                        navigationButtons: true,
+                        selectable: true,
+                        selectConnectedEdges: true,
+                        tooltipDelay: 0,
+                        zoomSpeed: 1,
+                        zoomView: true
+                    },
+            },
+            labels: {
+                Movie: {
+                    label: "title",
+                    value: "pagerank",
+                    group: "community",
+                    [NeoVis.NEOVIS_ADVANCED_CONFIG]: {
+                        static: {
+                            label: "Movie",
+                            //color: '#ff00ff'
+                            //size: '50px'
+                        }
+                    }
+                },
+                Person: {
+                    label: "name",
+                    color: '#ffffff',
+                    value: "pagerank",
+                    group: "community",
+                    [NeoVis.NEOVIS_ADVANCED_CONFIG]: {
+                        static: {
+                            label: "Person",
+                            color: '#00ffff'
+                        }
+                    }
+                }
+            },
+            relationships: {
+                ACTED_IN: {
+                        [NeoVis.NEOVIS_ADVANCED_CONFIG]: {
+                            static: {
+                                label: "ACTED_IN"
+                            }
+                        }
+					},
+                DIRECTED: {
+                        [NeoVis.NEOVIS_ADVANCED_CONFIG]: {
+                            static: {
+                                label: "DIRECTED"
+                            }
+                        }
+					},
+                FOLLOWS: {
+                        [NeoVis.NEOVIS_ADVANCED_CONFIG]: {
+                            static: {
+                                label: "FOLLOWS"
+                            }
+                        }
+					},
+                PRODUCED: {
+                        [NeoVis.NEOVIS_ADVANCED_CONFIG]: {
+                            static: {
+                                label: "PRODUCED"
+                            }
+                        }
+					},
+                REVIEWED: {
+                        [NeoVis.NEOVIS_ADVANCED_CONFIG]: {
+                            static: {
+                                label: "REVIEWED"
+                            }
+                        }
+					},
+                WROTE: {
+                        [NeoVis.NEOVIS_ADVANCED_CONFIG]: {
+                            static: {
+                                label: "WROTE"
+                            }
+                        }
+					}
+            },
+            hoverNode: function(node) {
+                console.log("Hovering over node: ", node);
+            },
+            initialCypher: cypherQuery
+        };
+
+        // Create a new neovis.js instance
+        const vis = new NeoVis.default(config);
+        // Render the visualization
+        vis.render();
+        hideLoader();
+        vis.registerOnEvent("completed", (e)=>{
+        vis["network"].on("click", (event)=>{
+            console.log(event); //get node properties
+        });
+
+        vis["network"].on("hoverNode", (props)=>{
+            var driver = neo4j.driver('bolt://localhost:7687', neo4j.auth.basic('neo4j', '12345678'));
+            var query = 'MATCH (n) WHERE id(n) = $id RETURN n';
+            var session = driver.session();
+            session
+            .run(query, { id: props.node})
+            .then(function(result) {
+                console.log(props);
+                var record = result.records[0];
+                var node = record.get('n');
+                var properties = node.properties;
+                $('#prp-popup').remove();
+                var popup = document.createElement("div");
+                popup.id = 'prp-popup';
+                popup.innerHTML = JSON.stringify(properties);
+                popup.style.position = "absolute";
+                popup.style.maxWidth = "400px";
+                popup.style.maxHeight = "400px";
+                popup.style.background = "white";
+                popup.style.border = "1px solid black";
+                popup.style.padding = "10px";
+                popup.style.zIndex = "9999";
+                popup.style.overflow = "auto";
+                popup.style.top = props.event.pageY + "px";
+                popup.style.left = props.event.pageX + "px";
+                document.body.appendChild(popup);
+            })
+            .catch(function(error) {
+                console.error(error);
+            })
+            .finally(function() {
+                session.close();
+                driver.close();
+            });
+        });
+
+        vis["network"].on("blurNode", (props)=>{
+            $('#prp-popup').remove();
+        });
+    });
+    }   
+        </script>
+  </body>
+</html>
